@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
 
 from sqlalchemy import func, select
@@ -27,6 +27,12 @@ class NoCredentials(Exception):
     pass
 
 
+def _compute_expires_at(product: Product, now: datetime) -> datetime | None:
+    if product.duration_days and product.duration_days > 0:
+        return now + timedelta(days=product.duration_days)
+    return None
+
+
 async def count_available_credentials(
     session: AsyncSession, product_id: int
 ) -> int:
@@ -39,11 +45,6 @@ async def count_available_credentials(
         )
     )
     return int(result.scalar() or 0)
-
-
-# ─────────────────────────────────────────────────────────
-# COMPRA SIMPLES (1 produto)
-# ─────────────────────────────────────────────────────────
 
 
 async def execute_purchase(
@@ -66,7 +67,9 @@ async def execute_purchase(
     total = product.price * Decimal(quantity)
 
     if user.balance < total:
-        raise InsufficientBalance(needed=total - user.balance, current=user.balance)
+        raise InsufficientBalance(
+            needed=total - user.balance, current=user.balance
+        )
     if product.stock < quantity:
         raise OutOfStock()
 
@@ -90,6 +93,7 @@ async def execute_purchase(
     balance_before = user.balance
     user.balance = user.balance - total
     now = datetime.utcnow()
+    expires_at = _compute_expires_at(product, now)
 
     order = Order(user_id=user_id, total=total, status="paid", paid_at=now)
     session.add(order)
@@ -120,6 +124,7 @@ async def execute_purchase(
             email=cred.email,
             password=cred.password,
             status="active",
+            expires_at=expires_at,
         )
         session.add(delivery)
         await session.flush()
@@ -154,11 +159,6 @@ async def execute_purchase(
         "deliveries": deliveries_data,
         "purchased_at": now,
     }
-
-
-# ─────────────────────────────────────────────────────────
-# COMPRA EM CARRINHO (multi-produto atômica)
-# ─────────────────────────────────────────────────────────
 
 
 async def execute_cart_purchase(
@@ -216,6 +216,7 @@ async def execute_cart_purchase(
     for item in cart_items:
         product = products[item.product_id]
         item_total = product.price * Decimal(item.quantity)
+        expires_at = _compute_expires_at(product, now)
 
         cred_q = await session.execute(
             select(ProductCredential)
@@ -258,6 +259,7 @@ async def execute_cart_purchase(
                 email=cred.email,
                 password=cred.password,
                 status="active",
+                expires_at=expires_at,
             )
             session.add(delivery)
             await session.flush()
