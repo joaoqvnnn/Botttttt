@@ -1,11 +1,13 @@
 import logging
 
+from sqlalchemy import select
 from telegram import Update
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 
 from app.config import settings
 from app.database import SessionLocal
+from app.db.affiliates import register_referral
 from app.db.cart import get_cart_count
 from app.db.users import get_or_create_user
 from app.keyboards.main_menu import lock_screen_keyboard, main_menu_keyboard
@@ -18,8 +20,15 @@ VALID_STATUSES = {"member", "administrator", "creator"}
 
 
 def _clear_pending_states(context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Remove estados temporários de fluxos abertos."""
-    for key in ("pending_qty", "awaiting_qty", "pending_purchase"):
+    for key in (
+        "pending_qty",
+        "awaiting_qty",
+        "pending_purchase",
+        "pix_current",
+        "pix_awaiting_value",
+        "aff_pending_redeem",
+        "aff_awaiting_points",
+    ):
         context.user_data.pop(key, None)
 
 
@@ -70,6 +79,27 @@ def _welcome_text(
     )
 
 
+async def _try_register_referral(user, referrer_telegram_id: int) -> None:
+    """Registra indicação via /start REFERRER_ID (se válida)."""
+    if not settings.AFFILIATE_ENABLED:
+        return
+
+    async with SessionLocal() as session:
+        new_user = await get_or_create_user(
+            session, user.id, user.username, user.first_name
+        )
+        try:
+            registered = await register_referral(
+                session, referrer_telegram_id, new_user
+            )
+            if registered:
+                logger.info(
+                    f"Indicação registrada: user {user.id} via {referrer_telegram_id}"
+                )
+        except Exception:
+            logger.exception("Falha ao registrar indicação")
+
+
 async def _render_entry(update: Update, bot) -> None:
     user = update.effective_user
 
@@ -104,6 +134,18 @@ async def _render_entry(update: Update, bot) -> None:
 
 
 async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user = update.effective_user
+
+    # Processa o parâmetro de indicação (?start=REFERRER_TELEGRAM_ID)
+    args = context.args
+    if args:
+        try:
+            referrer_telegram_id = int(args[0])
+            if referrer_telegram_id != user.id:
+                await _try_register_referral(user, referrer_telegram_id)
+        except (ValueError, TypeError):
+            pass
+
     _clear_pending_states(context)
     await _render_entry(update, context.bot)
 
@@ -132,7 +174,6 @@ async def verify_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 async def placeholder_callback(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> None:
-    """Botões dos próximos módulos — feedback provisório."""
     await update.callback_query.answer("🔄 Em breve")
 
 
