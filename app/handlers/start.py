@@ -6,6 +6,7 @@ from telegram.ext import ContextTypes
 
 from app.config import settings
 from app.database import SessionLocal
+from app.db.cart import get_cart_count
 from app.db.users import get_or_create_user
 from app.keyboards.main_menu import lock_screen_keyboard, main_menu_keyboard
 from app.utils.texts import get_greeting
@@ -20,7 +21,10 @@ async def _check_membership(bot, user_id: int) -> bool:
     try:
         channel = await bot.get_chat_member(settings.CHANNEL_ID, user_id)
         group = await bot.get_chat_member(settings.GROUP_ID, user_id)
-        return channel.status in VALID_STATUSES and group.status in VALID_STATUSES
+        return (
+            channel.status in VALID_STATUSES
+            and group.status in VALID_STATUSES
+        )
     except Exception as e:
         logger.warning(f"Falha ao verificar membros: {e}")
         return False
@@ -69,15 +73,20 @@ async def _render_entry(update: Update, bot) -> None:
             session, user.id, user.username, user.first_name
         )
         balance = float(db_user.balance)
+        cart_count = await get_cart_count(session, db_user.id)
 
     is_member = await _check_membership(bot, user.id)
 
     if is_member:
-        text = _welcome_text(user.first_name, user.username, user.id, balance)
-        keyboard = main_menu_keyboard()
+        text = _welcome_text(
+            user.first_name, user.username, user.id, balance
+        )
+        keyboard = main_menu_keyboard(cart_count)
     else:
         text = _lock_screen_text(user.first_name)
-        keyboard = lock_screen_keyboard(settings.CHANNEL_LINK, settings.GROUP_LINK)
+        keyboard = lock_screen_keyboard(
+            settings.CHANNEL_LINK, settings.GROUP_LINK
+        )
 
     if update.callback_query:
         await update.callback_query.edit_message_text(
@@ -90,6 +99,11 @@ async def _render_entry(update: Update, bot) -> None:
 
 
 async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await _render_entry(update, context.bot)
+
+
+async def back_to_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Retorna à tela de boas-vindas (chamado pelo botão Voltar do catálogo)."""
     await _render_entry(update, context.bot)
 
 
