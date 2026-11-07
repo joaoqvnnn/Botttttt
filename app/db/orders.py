@@ -47,6 +47,21 @@ async def count_available_credentials(
     return int(result.scalar() or 0)
 
 
+async def _confirm_referral_safe(user_id: int) -> None:
+    """Fire-and-forget da confirmação de indicação."""
+    try:
+        from app.database import SessionLocal as _SL
+        from app.db.affiliates import confirm_referral_if_first_purchase
+
+        async with _SL() as s:
+            await confirm_referral_if_first_purchase(s, user_id)
+    except Exception:
+        import logging
+        logging.getLogger(__name__).exception(
+            "Falha ao confirmar referral pós-compra"
+        )
+
+
 async def execute_purchase(
     session: AsyncSession, user_id: int, product_id: int, quantity: int = 1
 ) -> dict:
@@ -149,7 +164,7 @@ async def execute_purchase(
 
     await session.commit()
 
-    return {
+    result = {
         "order_id": order.id,
         "product_name": product.name,
         "quantity": quantity,
@@ -159,6 +174,9 @@ async def execute_purchase(
         "deliveries": deliveries_data,
         "purchased_at": now,
     }
+
+    await _confirm_referral_safe(user_id)
+    return result
 
 
 async def execute_cart_purchase(
@@ -304,10 +322,13 @@ async def execute_cart_purchase(
 
     await session.commit()
 
-    return {
+    result = {
         "order_id": order.id,
         "total": float(total),
         "balance_after": float(user.balance),
         "items": items_result,
         "purchased_at": now,
     }
+
+    await _confirm_referral_safe(user_id)
+    return result
