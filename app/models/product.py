@@ -27,6 +27,7 @@ class Product(Base):
     stock: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     image_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
     category: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    duration_days: Mapped[int | None] = mapped_column(Integer, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), nullable=False
