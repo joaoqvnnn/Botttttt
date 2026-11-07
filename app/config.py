@@ -30,6 +30,18 @@ class Settings(BaseSettings):
     PIX_EXPIRATION_MINUTES: int = 30
     MP_WEBHOOK_SECRET: str = ""
 
+    # ─── Módulo 10 — Afiliados ────────────────────────
+    AFFILIATE_ENABLED: bool = True
+    AFFILIATE_POINTS_PER_REFERRAL: int = 10
+    AFFILIATE_CONVERSION_RATE: float = 0.10
+    AFFILIATE_MIN_REDEEM: int = 50
+    AFFILIATE_PER_PAGE: int = 8
+
+    # ─── Módulo 11 — Suporte ──────────────────────────
+    # Aceita @username (ex: @bellamy_suporte) ou ID numérico (ex: 123456789).
+    # Deixe vazio para OCULTAR o botão do menu.
+    SUPPORT_CONTACT: str = ""
+
     @property
     def async_database_url(self) -> str:
         url = self.DATABASE_URL
