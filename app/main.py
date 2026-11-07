@@ -12,7 +12,8 @@ from telegram.ext import (
 )
 
 from app.config import settings
-from app.database import init_db
+from app.database import SessionLocal, init_db
+from app.db.payments import confirm_payment, get_payment_by_mp_id
 from app.handlers.buy_quantity import (
     buy_qty_handler,
     qty_cancel_handler,
@@ -39,6 +40,14 @@ from app.handlers.catalog import (
     catalog_open,
     catalog_page,
     product_view,
+)
+from app.handlers.pix import (
+    pix_back,
+    pix_cancel,
+    pix_check,
+    pix_entry,
+    pix_start,
+    pix_value_input,
 )
 from app.handlers.profile import (
     back_to_profile,
@@ -185,6 +194,23 @@ async def lifespan(app: FastAPI):
         CallbackQueryHandler(cart_hide_creds, pattern="^cart_hide_creds$")
     )
 
+    # ─── Módulo 06 — PIX ───────────────────────────────
+    ptb_app.add_handler(
+        CallbackQueryHandler(pix_entry, pattern="^add_balance")
+    )
+    ptb_app.add_handler(
+        CallbackQueryHandler(pix_start, pattern="^pix_start$")
+    )
+    ptb_app.add_handler(
+        CallbackQueryHandler(pix_check, pattern="^pix_check$")
+    )
+    ptb_app.add_handler(
+        CallbackQueryHandler(pix_cancel, pattern="^pix_cancel$")
+    )
+    ptb_app.add_handler(
+        CallbackQueryHandler(pix_back, pattern="^pix_back:")
+    )
+
     # ─── Módulo 07 — Assinaturas ───────────────────────
     ptb_app.add_handler(
         CallbackQueryHandler(subscriptions_view, pattern="^profile_subs$")
@@ -214,9 +240,12 @@ async def lifespan(app: FastAPI):
         CallbackQueryHandler(generate_pdf_handler, pattern="^history_pdf$")
     )
 
-    # ─── MessageHandler — input de texto (quantidade) ──
+    # ─── MessageHandler — inputs de texto ──────────────
     ptb_app.add_handler(
         MessageHandler(filters.TEXT & ~filters.COMMAND, qty_text_input)
+    )
+    ptb_app.add_handler(
+        MessageHandler(filters.TEXT & ~filters.COMMAND, pix_value_input)
     )
 
     # ─── Fallback — sempre por último ──────────────────
@@ -267,4 +296,61 @@ async def telegram_webhook(request: Request):
     data = await request.json()
     update = Update.de_json(data, ptb_app.bot)
     await ptb_app.process_update(update)
+    return Response(status_code=200)
+
+
+# ─────────────────────────────────────────────────────────
+# MÓDULO 06 — WEBHOOK MERCADO PAGO
+# ─────────────────────────────────────────────────────────
+
+
+@app.post("/webhook/mercadopago")
+async def mercadopago_webhook(request: Request):
+    """
+    Recebe notificações do Mercado Pago.
+    Payload típico: {"type": "payment", "data": {"id": "123456789"}}
+    Valida o pagamento na API do MP e credita o saldo se aprovado.
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        return Response(status_code=400)
+
+    notif_type = body.get("type") or body.get("topic")
+    data_id = (body.get("data") or {}).get("id") or body.get("data_id")
+
+    if notif_type not in ("payment", "merchant_order") or not data_id:
+        return Response(status_code=200)  # ignora tipos irrelevantes
+
+    try:
+        mp_payment_id = int(data_id)
+    except (TypeError, ValueError):
+        return Response(status_code=200)
+
+    try:
+        headers = {"Authorization": f"Bearer {settings.MP_ACCESS_TOKEN}"}
+        import httpx as _httpx
+
+        async with _httpx.AsyncClient(timeout=30) as client:
+            resp = await client.get(
+                f"https://api.mercadopago.com/v1/payments/{mp_payment_id}",
+                headers=headers,
+            )
+            if resp.status_code != 200:
+                return Response(status_code=200)
+            mp_data = resp.json()
+    except Exception:
+        logger.exception("Falha ao consultar pagamento no MP")
+        return Response(status_code=200)  # MP reenvia depois
+
+    if mp_data.get("status") != "approved":
+        return Response(status_code=200)
+
+    async with SessionLocal() as session:
+        payment = await get_payment_by_mp_id(session, mp_payment_id)
+        if payment is None:
+            logger.warning(f"Pagamento MP {mp_payment_id} sem registro local")
+            return Response(status_code=200)
+        await confirm_payment(session, payment)
+
     return Response(status_code=200)
