@@ -63,6 +63,7 @@ from app.handlers.purchase import (
     hide_creds,
     reveal_creds,
 )
+from app.handlers.ranking import ranking_category, ranking_open
 from app.handlers.start import (
     back_to_menu,
     error_handler,
@@ -240,6 +241,14 @@ async def lifespan(app: FastAPI):
         CallbackQueryHandler(generate_pdf_handler, pattern="^history_pdf$")
     )
 
+    # ─── Módulo 09 — Ranking ───────────────────────────
+    ptb_app.add_handler(
+        CallbackQueryHandler(ranking_open, pattern="^ranking$")
+    )
+    ptb_app.add_handler(
+        CallbackQueryHandler(ranking_category, pattern="^rank:")
+    )
+
     # ─── MessageHandler — inputs de texto ──────────────
     ptb_app.add_handler(
         MessageHandler(filters.TEXT & ~filters.COMMAND, qty_text_input)
@@ -306,11 +315,6 @@ async def telegram_webhook(request: Request):
 
 @app.post("/webhook/mercadopago")
 async def mercadopago_webhook(request: Request):
-    """
-    Recebe notificações do Mercado Pago.
-    Payload típico: {"type": "payment", "data": {"id": "123456789"}}
-    Valida o pagamento na API do MP e credita o saldo se aprovado.
-    """
     try:
         body = await request.json()
     except Exception:
@@ -320,7 +324,7 @@ async def mercadopago_webhook(request: Request):
     data_id = (body.get("data") or {}).get("id") or body.get("data_id")
 
     if notif_type not in ("payment", "merchant_order") or not data_id:
-        return Response(status_code=200)  # ignora tipos irrelevantes
+        return Response(status_code=200)
 
     try:
         mp_payment_id = int(data_id)
@@ -341,7 +345,7 @@ async def mercadopago_webhook(request: Request):
             mp_data = resp.json()
     except Exception:
         logger.exception("Falha ao consultar pagamento no MP")
-        return Response(status_code=200)  # MP reenvia depois
+        return Response(status_code=200)
 
     if mp_data.get("status") != "approved":
         return Response(status_code=200)
