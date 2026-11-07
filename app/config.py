@@ -16,8 +16,11 @@ class Settings(BaseSettings):
 
     DATABASE_URL: str
 
-    # Módulo 02 — quantidade de produtos por página do catálogo
+    # Catálogo
     PRODUCTS_PER_PAGE: int = 5
+
+    # Módulo 03 — link de ativação (aceita {order_id} para substituição)
+    ACTIVATION_URL: str = ""
 
     @property
     def async_database_url(self) -> str:
