@@ -40,6 +40,12 @@ from app.handlers.catalog import (
     catalog_page,
     product_view,
 )
+from app.handlers.profile import (
+    back_to_profile,
+    generate_pdf_handler,
+    profile_history,
+    profile_view,
+)
 from app.handlers.purchase import (
     activation_missing,
     buy_now,
@@ -54,6 +60,13 @@ from app.handlers.start import (
     placeholder_callback,
     start_handler,
     verify_callback,
+)
+from app.handlers.subscriptions import (
+    subscription_detail,
+    subscription_hide,
+    subscription_reveal,
+    subscriptions_page,
+    subscriptions_view,
 )
 
 
@@ -170,6 +183,35 @@ async def lifespan(app: FastAPI):
     )
     ptb_app.add_handler(
         CallbackQueryHandler(cart_hide_creds, pattern="^cart_hide_creds$")
+    )
+
+    # ─── Módulo 07 — Assinaturas ───────────────────────
+    ptb_app.add_handler(
+        CallbackQueryHandler(subscriptions_view, pattern="^profile_subs$")
+    )
+    ptb_app.add_handler(
+        CallbackQueryHandler(subscriptions_page, pattern="^sub_page:")
+    )
+    ptb_app.add_handler(
+        CallbackQueryHandler(subscription_detail, pattern="^sub_detail:")
+    )
+    ptb_app.add_handler(
+        CallbackQueryHandler(subscription_reveal, pattern="^sub_reveal:")
+    )
+    ptb_app.add_handler(
+        CallbackQueryHandler(subscription_hide, pattern="^sub_hide:")
+    )
+
+    # ─── Módulo 08 — Perfil e Histórico ────────────────
+    ptb_app.add_handler(CallbackQueryHandler(profile_view, pattern="^profile$"))
+    ptb_app.add_handler(
+        CallbackQueryHandler(back_to_profile, pattern="^back_to_profile$")
+    )
+    ptb_app.add_handler(
+        CallbackQueryHandler(profile_history, pattern="^profile_history$")
+    )
+    ptb_app.add_handler(
+        CallbackQueryHandler(generate_pdf_handler, pattern="^history_pdf$")
     )
 
     # ─── MessageHandler — input de texto (quantidade) ──
