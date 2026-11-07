@@ -14,6 +14,20 @@ from telegram.ext import (
 from app.config import settings
 from app.database import SessionLocal, init_db
 from app.db.payments import confirm_payment, get_payment_by_mp_id
+from app.handlers.affiliates import (
+    affiliates_history,
+    affiliates_how_it_works,
+    affiliates_performance,
+    affiliates_redeem,
+    affiliates_redeem_all,
+    affiliates_redeem_cancel,
+    affiliates_redeem_confirm,
+    affiliates_redeem_custom_input,
+    affiliates_redeem_custom_prompt,
+    affiliates_referrals,
+    affiliates_referrals_page,
+    affiliates_view,
+)
 from app.handlers.buy_quantity import (
     buy_qty_handler,
     qty_cancel_handler,
@@ -249,12 +263,69 @@ async def lifespan(app: FastAPI):
         CallbackQueryHandler(ranking_category, pattern="^rank:")
     )
 
+    # ─── Módulo 10 — Afiliados ─────────────────────────
+    ptb_app.add_handler(
+        CallbackQueryHandler(affiliates_view, pattern="^affiliates$")
+    )
+    ptb_app.add_handler(
+        CallbackQueryHandler(affiliates_redeem, pattern="^aff_redeem$")
+    )
+    ptb_app.add_handler(
+        CallbackQueryHandler(
+            affiliates_redeem_all, pattern="^aff_redeem_all$"
+        )
+    )
+    ptb_app.add_handler(
+        CallbackQueryHandler(
+            affiliates_redeem_custom_prompt,
+            pattern="^aff_redeem_custom$",
+        )
+    )
+    ptb_app.add_handler(
+        CallbackQueryHandler(
+            affiliates_redeem_confirm, pattern="^aff_redeem_confirm$"
+        )
+    )
+    ptb_app.add_handler(
+        CallbackQueryHandler(
+            affiliates_redeem_cancel, pattern="^aff_redeem_cancel$"
+        )
+    )
+    ptb_app.add_handler(
+        CallbackQueryHandler(
+            affiliates_referrals, pattern="^aff_referrals$"
+        )
+    )
+    ptb_app.add_handler(
+        CallbackQueryHandler(
+            affiliates_referrals_page, pattern="^aff_refs_page:"
+        )
+    )
+    ptb_app.add_handler(
+        CallbackQueryHandler(
+            affiliates_performance, pattern="^aff_performance$"
+        )
+    )
+    ptb_app.add_handler(
+        CallbackQueryHandler(affiliates_history, pattern="^aff_history$")
+    )
+    ptb_app.add_handler(
+        CallbackQueryHandler(
+            affiliates_how_it_works, pattern="^aff_how$"
+        )
+    )
+
     # ─── MessageHandler — inputs de texto ──────────────
     ptb_app.add_handler(
         MessageHandler(filters.TEXT & ~filters.COMMAND, qty_text_input)
     )
     ptb_app.add_handler(
         MessageHandler(filters.TEXT & ~filters.COMMAND, pix_value_input)
+    )
+    ptb_app.add_handler(
+        MessageHandler(
+            filters.TEXT & ~filters.COMMAND, affiliates_redeem_custom_input
+        )
     )
 
     # ─── Fallback — sempre por último ──────────────────
