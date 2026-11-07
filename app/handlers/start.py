@@ -17,6 +17,12 @@ logger = logging.getLogger(__name__)
 VALID_STATUSES = {"member", "administrator", "creator"}
 
 
+def _clear_pending_states(context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Remove estados temporários de fluxos abertos."""
+    for key in ("pending_qty", "awaiting_qty", "pending_purchase"):
+        context.user_data.pop(key, None)
+
+
 async def _check_membership(bot, user_id: int) -> bool:
     try:
         channel = await bot.get_chat_member(settings.CHANNEL_ID, user_id)
@@ -98,10 +104,12 @@ async def _render_entry(update: Update, bot) -> None:
 
 
 async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    _clear_pending_states(context)
     await _render_entry(update, context.bot)
 
 
 async def back_to_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    _clear_pending_states(context)
     await _render_entry(update, context.bot)
 
 
@@ -117,6 +125,7 @@ async def verify_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         return
 
     await query.answer("✅ Verificado!")
+    _clear_pending_states(context)
     await _render_entry(update, context.bot)
 
 
