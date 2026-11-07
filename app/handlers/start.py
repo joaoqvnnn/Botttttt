@@ -65,7 +65,6 @@ def _welcome_text(
 
 
 async def _render_entry(update: Update, bot) -> None:
-    """Decide entre tela de bloqueio ou boas-vindas."""
     user = update.effective_user
 
     async with SessionLocal() as session:
@@ -103,7 +102,6 @@ async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
 
 async def back_to_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Retorna à tela de boas-vindas (chamado pelo botão Voltar do catálogo)."""
     await _render_entry(update, context.bot)
 
 
@@ -125,8 +123,8 @@ async def verify_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 async def placeholder_callback(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> None:
-    """Silencia cliques em botões que serão implementados nos próximos módulos."""
-    await update.callback_query.answer()
+    """Botões dos próximos módulos — feedback provisório."""
+    await update.callback_query.answer("🔄 Em breve")
 
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
