@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import BigInteger, DateTime, Numeric, String, func
+from sqlalchemy import BigInteger, DateTime, Integer, Numeric, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -16,6 +16,12 @@ class User(Base):
     first_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     balance: Mapped[Decimal] = mapped_column(
         Numeric(12, 2), default=Decimal("0.00"), nullable=False
+    )
+    referral_points: Mapped[int] = mapped_column(
+        Integer, default=0, nullable=False
+    )
+    referred_by: Mapped[int | None] = mapped_column(
+        BigInteger, nullable=True, index=True
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), nullable=False
