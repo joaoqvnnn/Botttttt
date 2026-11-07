@@ -19,7 +19,10 @@ class Settings(BaseSettings):
     # Catálogo
     PRODUCTS_PER_PAGE: int = 5
 
-    # Módulo 03 — link de ativação (aceita {order_id} para substituição)
+    # Módulo 07 — assinaturas por página
+    SUBSCRIPTIONS_PER_PAGE: int = 6
+
+    # Link de ativação (aceita {order_id})
     ACTIVATION_URL: str = ""
 
     @property
