@@ -18,12 +18,17 @@ class Settings(BaseSettings):
 
     # Catálogo
     PRODUCTS_PER_PAGE: int = 5
-
-    # Módulo 07 — assinaturas por página
     SUBSCRIPTIONS_PER_PAGE: int = 6
 
-    # Link de ativação (aceita {order_id})
+    # Ativação
     ACTIVATION_URL: str = ""
+
+    # ─── Módulo 06 — PIX / Mercado Pago ───────────────
+    MP_ACCESS_TOKEN: str = ""
+    PIX_MIN_DEPOSIT: float = 5.00
+    PIX_BONUS_PERCENT: float = 0.0
+    PIX_EXPIRATION_MINUTES: int = 30
+    MP_WEBHOOK_SECRET: str = ""
 
     @property
     def async_database_url(self) -> str:
