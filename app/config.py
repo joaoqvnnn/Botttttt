@@ -16,6 +16,9 @@ class Settings(BaseSettings):
 
     DATABASE_URL: str
 
+    # Módulo 02 — quantidade de produtos por página do catálogo
+    PRODUCTS_PER_PAGE: int = 5
+
     @property
     def async_database_url(self) -> str:
         url = self.DATABASE_URL
