@@ -110,7 +110,10 @@ async def _render_entry(update: Update, bot) -> None:
         balance = float(db_user.balance)
         cart_count = await get_cart_count(session, db_user.id)
 
-    is_member = await _check_membership(bot, user.id)
+    # ⚠️ VERIFICAÇÃO DE CANAL/GRUPO DESATIVADA TEMPORARIAMENTE PARA TESTES
+    # Quando criar o canal e o grupo, troque a linha abaixo por:
+    # is_member = await _check_membership(bot, user.id)
+    is_member = True
 
     if is_member:
         text = _welcome_text(
