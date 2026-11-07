@@ -14,6 +14,14 @@ from app.handlers.catalog import (
     catalog_page,
     product_view,
 )
+from app.handlers.purchase import (
+    activation_missing,
+    buy_now,
+    cancel_buy,
+    confirm_buy,
+    hide_creds,
+    reveal_creds,
+)
 from app.handlers.start import (
     back_to_menu,
     error_handler,
@@ -41,7 +49,7 @@ async def lifespan(app: FastAPI):
 
     ptb_app = Application.builder().token(settings.BOT_TOKEN).build()
 
-    # Módulo 01
+    # Módulo 01 — Entrada
     ptb_app.add_handler(CommandHandler("start", start_handler))
     ptb_app.add_handler(
         CallbackQueryHandler(verify_callback, pattern="^verify_membership$")
@@ -67,7 +75,27 @@ async def lifespan(app: FastAPI):
         CallbackQueryHandler(cart_add, pattern="^cart_add:")
     )
 
-    # Placeholder dos módulos futuros — sempre por último
+    # Módulo 03 — Compras
+    ptb_app.add_handler(
+        CallbackQueryHandler(buy_now, pattern="^buy_now:")
+    )
+    ptb_app.add_handler(
+        CallbackQueryHandler(confirm_buy, pattern="^confirm_buy:")
+    )
+    ptb_app.add_handler(
+        CallbackQueryHandler(cancel_buy, pattern="^cancel_buy:")
+    )
+    ptb_app.add_handler(
+        CallbackQueryHandler(reveal_creds, pattern="^reveal_creds$")
+    )
+    ptb_app.add_handler(
+        CallbackQueryHandler(hide_creds, pattern="^hide_creds$")
+    )
+    ptb_app.add_handler(
+        CallbackQueryHandler(activation_missing, pattern="^activation_missing$")
+    )
+
+    # Fallback — deve ficar por último
     ptb_app.add_handler(CallbackQueryHandler(placeholder_callback))
     ptb_app.add_error_handler(error_handler)
 
