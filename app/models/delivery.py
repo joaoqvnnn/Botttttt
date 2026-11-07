@@ -7,8 +7,6 @@ from app.database import Base
 
 
 class ProductCredential(Base):
-    """Estoque de credenciais por produto — cada linha é 1 login vendável."""
-
     __tablename__ = "product_credentials"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -19,7 +17,7 @@ class ProductCredential(Base):
     password: Mapped[str] = mapped_column(String(255), nullable=False)
     status: Mapped[str] = mapped_column(
         String(20), default="available", index=True, nullable=False
-    )  # available | sold
+    )
     order_id: Mapped[int | None] = mapped_column(
         ForeignKey("orders.id"), nullable=True, index=True
     )
@@ -30,8 +28,6 @@ class ProductCredential(Base):
 
 
 class Delivery(Base):
-    """Entrega imutável (audit trail) — copia da credencial entregue ao cliente."""
-
     __tablename__ = "deliveries"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -50,6 +46,7 @@ class Delivery(Base):
     email: Mapped[str] = mapped_column(String(255), nullable=False)
     password: Mapped[str] = mapped_column(String(255), nullable=False)
     status: Mapped[str] = mapped_column(String(20), default="active", nullable=False)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), nullable=False
     )
