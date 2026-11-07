@@ -1,16 +1,13 @@
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.cart import CartItem
+from app.models.product import Product
 
 
 async def add_to_cart(
     session: AsyncSession, user_id: int, product_id: int, quantity: int = 1
 ) -> int:
-    """
-    Adiciona/incrementa produto no carrinho.
-    Retorna o total de itens (soma de quantidades) no carrinho do usuário.
-    """
     existing_q = await session.execute(
         select(CartItem).where(
             CartItem.user_id == user_id,
@@ -23,7 +20,9 @@ async def add_to_cart(
         item.quantity += quantity
     else:
         session.add(
-            CartItem(user_id=user_id, product_id=product_id, quantity=quantity)
+            CartItem(
+                user_id=user_id, product_id=product_id, quantity=quantity
+            )
         )
     await session.commit()
 
@@ -46,3 +45,20 @@ async def get_cart_items(session: AsyncSession, user_id: int) -> list[CartItem]:
         .order_by(CartItem.created_at.asc())
     )
     return list(result.scalars().all())
+
+
+async def get_cart_with_products(
+    session: AsyncSession, user_id: int
+) -> list[tuple[CartItem, Product]]:
+    result = await session.execute(
+        select(CartItem, Product)
+        .join(Product, CartItem.product_id == Product.id)
+        .where(CartItem.user_id == user_id)
+        .order_by(CartItem.created_at.asc())
+    )
+    return list(result.all())
+
+
+async def clear_cart(session: AsyncSession, user_id: int) -> None:
+    await session.execute(delete(CartItem).where(CartItem.user_id == user_id))
+    await session.commit()
