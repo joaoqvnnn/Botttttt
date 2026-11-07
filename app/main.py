@@ -7,7 +7,15 @@ from telegram.ext import Application, CallbackQueryHandler, CommandHandler
 
 from app.config import settings
 from app.database import init_db
+from app.handlers.catalog import (
+    back_to_catalog,
+    cart_add,
+    catalog_open,
+    catalog_page,
+    product_view,
+)
 from app.handlers.start import (
+    back_to_menu,
     error_handler,
     placeholder_callback,
     start_handler,
@@ -33,10 +41,33 @@ async def lifespan(app: FastAPI):
 
     ptb_app = Application.builder().token(settings.BOT_TOKEN).build()
 
+    # Módulo 01
     ptb_app.add_handler(CommandHandler("start", start_handler))
     ptb_app.add_handler(
         CallbackQueryHandler(verify_callback, pattern="^verify_membership$")
     )
+    ptb_app.add_handler(
+        CallbackQueryHandler(back_to_menu, pattern="^back_to_menu$")
+    )
+
+    # Módulo 02 — Catálogo
+    ptb_app.add_handler(
+        CallbackQueryHandler(catalog_open, pattern="^catalog$")
+    )
+    ptb_app.add_handler(
+        CallbackQueryHandler(catalog_page, pattern="^cat_page:")
+    )
+    ptb_app.add_handler(
+        CallbackQueryHandler(back_to_catalog, pattern="^back_to_catalog$")
+    )
+    ptb_app.add_handler(
+        CallbackQueryHandler(product_view, pattern="^product:")
+    )
+    ptb_app.add_handler(
+        CallbackQueryHandler(cart_add, pattern="^cart_add:")
+    )
+
+    # Placeholder dos módulos futuros — sempre por último
     ptb_app.add_handler(CallbackQueryHandler(placeholder_callback))
     ptb_app.add_error_handler(error_handler)
 
