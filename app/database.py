@@ -20,8 +20,8 @@ class Base(DeclarativeBase):
 
 
 async def init_db() -> None:
-    # Importa os models para registrar as tabelas no metadata
-    from app.models import user  # noqa: F401
+    # Registra todas as tabelas no metadata antes do create_all
+    from app import models  # noqa: F401
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
